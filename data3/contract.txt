@@ -1,0 +1,89 @@
+MAINTENANCE CONTRACTThis Maintenance Agreement ("Agreement") is made and entered into as of March 10, 2025, by and between ABC Power Solutions Ltd., a corporation duly incorporated under the laws of the State of [Insert State], with its principal place of business at [Insert Address] (hereinafter referred to as "ABC"), and XYZ Engineering Services Ltd., a corporation duly incorporated under the laws of the State of [Insert State], with its principal place of business at [Insert Address] (hereinafter referred to as "XYZ").
+
+1. Scope of Services
+
+XYZ agrees to provide regular maintenance and emergency repair services for the power plant owned and operated by ABC. The scope includes but is not limited to:
+
+Routine maintenance of turbines, generators, transformers, and switchgear.
+
+Emergency response for breakdowns within the agreed Service Level Agreement (SLA) of 24 hours.
+
+Inspection and calibration of control systems every three months.
+
+Annual performance testing of major components.
+
+Supply and replacement of consumables, lubricants, and minor spare parts.
+
+Periodic safety audits and compliance assessments.
+
+2. Duration
+
+This Agreement shall commence on April 1, 2025, and continue for a period of three (3) years, expiring on March 31, 2028, unless terminated earlier as per the terms herein.
+
+3. Fees and Payment Terms
+
+ABC shall pay XYZ a fixed monthly fee of $10,000 (Ten Thousand US Dollars), payable on the 5th of each month.
+
+Additional repairs or spare parts beyond routine maintenance will be invoiced separately, subject to ABC’s prior approval.
+
+Late payments shall incur a penalty of 1.5% per month on the outstanding balance.
+
+4. Service Level Agreement (SLA)
+
+XYZ shall respond to any emergency breakdown within 24 hours of notification.
+
+Routine maintenance shall be conducted as per the mutually agreed schedule.
+
+A dedicated maintenance team shall be available 24/7 for troubleshooting and technical support.
+
+Any delays beyond the agreed SLA shall result in a penalty of $500 per day unless due to force majeure.
+
+5. Responsibilities of ABC
+
+Provide XYZ with access to all facilities and equipment for maintenance and repairs.
+
+Maintain necessary insurance coverage for plant operations.
+
+Ensure compliance with safety regulations and industry standards.
+
+6. Responsibilities of XYZ
+
+Ensure that all maintenance activities are performed by qualified and certified technicians.
+
+Adhere to environmental and safety standards while carrying out work on-site.
+
+Maintain detailed logs and provide monthly reports on plant performance and maintenance activities.
+
+7. Termination
+
+Either party may terminate this Agreement with a 60-day written notice.
+
+ABC may terminate the Agreement immediately if XYZ fails to meet the SLA for three consecutive months.
+
+XYZ may terminate the Agreement if payments remain outstanding for more than 90 days.
+
+8. Force Majeure
+
+Neither party shall be liable for failure or delay in performance due to causes beyond their reasonable control, including but not limited to natural disasters, war, governmental actions, and labor strikes.
+
+9. Confidentiality
+
+Both parties agree to maintain confidentiality of any proprietary or sensitive information exchanged during the term of this Agreement and for a period of two (2) years post-termination.
+
+10. Governing Law and Dispute Resolution
+
+This Agreement shall be governed by and construed in accordance with the laws of the State of [Insert State]. Any disputes shall be resolved through arbitration in [Insert City], and the decision shall be binding on both parties.
+
+11. Miscellaneous
+
+Amendments to this Agreement must be made in writing and signed by both parties.
+
+This Agreement constitutes the entire understanding between the parties.
+
+Notices shall be sent to the registered addresses of both parties via certified mail.
+
+IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the date first written above.
+
+For ABC Power Solutions Ltd.Authorized Signatory: John AndersonName: John AndersonTitle: Chief Executive OfficerDate: March 10, 2025
+
+For XYZ Engineering Services Ltd.Authorized Signatory: Michael RobertsName: Michael RobertsTitle: Managing DirectorDate: March 10, 2025
