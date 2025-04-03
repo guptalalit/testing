@@ -17,6 +17,21 @@ METADATA_FILE = "./memory/memory_metadata.json"
 FEEDBACK_COLLECTION_NAME = "session_feedback"
 load_dotenv()
 
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+def authenticate(auth_code):
+    correct_code = os.getenv("AUTH_CODE", "1234")
+    if auth_code == correct_code:
+        st.session_state["authenticated"] = True
+        
+    else:
+        st.error("🚨 Incorrect authentication code. Please try again.")
+
+def login_page():
+    st.title("🔐 Login Authentication")
+    auth_code = st.text_input("Enter Authentication Code", type="password")
+    st.button("Login", on_click=authenticate, args=(auth_code,))
 
 class AppMain():
     def __init__(self):
@@ -92,7 +107,6 @@ class AppMain():
             except Exception as e:
                 st.error(f"🚨 Error during file upload: {str(e)}")
                 return
-            
             finally:
                 # Delete the upload folder after processing
                 try:
@@ -106,7 +120,7 @@ class AppMain():
         query = st.text_input("Enter your query")
         pdf_file = st.file_uploader("Upload PDF context", type=["pdf"])
         output_format = st.selectbox("Select output format", ["JSON", "Text", "Table"])
-        application_name=st.text_input("Provide the application name")
+        application_name=st.selectbox("Provide the application name", self.selection_apps)
         # session_id = st.text_input("Session ID")
         # Check if the application name exists in the MongoDB database
         if application_name:
@@ -241,25 +255,39 @@ class AppMain():
                 st.error(f"Error processing feedback: {str(e)}")
 
 def main():
-    st.title("AI Assistant Platform")
-    
-    # Sidebar navigation
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio(
-        "Go to",
-        ["Data Upload", "Process Query", "Feedback"],
-        index=1  # Default to Process Query
-    )
+    if not st.session_state["authenticated"]:
+        login_page()
+    else:
+        # st.title("AI Assistant Platform")
+        # st.sidebar.title("Navigation")
+        # page = st.sidebar.radio("Go to", ["Data Upload", "Process Query", "Feedback"], index=1)
+        # obj = AppMain()
+        # if page == "Data Upload":
+        #     obj.data_upload_page()
+        # elif page == "Process Query":
+        #     obj.process_query_page()
+        # elif page == "Feedback":
+        #     obj.feedback_page()
 
-    obj = AppMain()
+        st.title("AI Assistant Platform")
+        
+        # Sidebar navigation
+        st.sidebar.title("Navigation")
+        page = st.sidebar.radio(
+            "Go to",
+            ["Data Upload", "Process Query", "Feedback"],
+            index=1  # Default to Process Query
+        )
 
-    # Display the selected page
-    if page == "Data Upload":
-        obj.data_upload_page()
-    elif page == "Process Query":
-        obj.process_query_page()
-    elif page == "Feedback":
-        obj.feedback_page()
+        obj = AppMain()
+
+        # Display the selected page
+        if page == "Data Upload":
+            obj.data_upload_page()
+        elif page == "Process Query":
+            obj.process_query_page()
+        elif page == "Feedback":
+            obj.feedback_page()
 
 if __name__ == '__main__':
     main()

@@ -72,7 +72,7 @@ class RAG:
         """
         # Step 1: Retrieve relevant documents
         try:
-            context_docs = self.retrieve_documents(query, k=3,application_name=application_name)
+            context_docs = self.retrieve_documents(query, k=9,application_name=application_name)
         except Exception as e:
             return f"Error retrieving documents: {e}"
 

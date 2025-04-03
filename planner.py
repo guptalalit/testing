@@ -77,8 +77,8 @@ class Planner:
                     report_context = "Report Pdf:" + report_context_1
                 else:
                     report_context = ""
-                print("prev conversation: ",prev_conversation)
-            
+                print("prev conversation: ",prev_conversation, report_context)
+
                 # Generate prompt
                 prompt = f"""Provide the answer for the given question based on the context only.
                     Question: {query}
