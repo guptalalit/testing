@@ -32,7 +32,7 @@ class ModelProvider:
         if self.provider == "gemini":
             
             genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            self.model =genai.GenerativeModel('gemini-2.0-flash')
+            self.model =genai.GenerativeModel('gemini-1.5-pro-latest')
         else:
             
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -67,29 +67,67 @@ class Planner:
             
             try:
                 # Get context from RAG
+                print("app: ", application_name, parser['sessionid'], query)
                 context = self.rag.rag(query, parser['sessionid'],application_name)
                 
                 # Get previous conversation
                 memory = Memory(application_name)
-                prev_conversation = memory.search_conversations(query=query, k=1)
+                prev_conversation = memory.search_conversations(query=query, k=3)
                 if parser["context"] != "":
                     report_context_1 = googleserv.GoogleLLM().getResults(parser["context"])
                     report_context = "Report Pdf:" + report_context_1
                 else:
                     report_context = ""
-                print("prev conversation: ",prev_conversation, report_context)
+                # report_context = parser["context"]
+                print("prev conversation: ",prev_conversation, report_context, parser["output_expectation"])
+
+                prompt = f"""
+                You are an intelligent assistant designed to answer questions based strictly on the provided context. Use only the information available in the Context and Previous Conversation to formulate your answer. Do not use any external knowledge or assumptions.
+
+                Answer the given Question using the most appropriate format based on the Output Expectation.
+
+                If a Report Context is provided, consider it as a reference document or supplementary data that may assist in forming your response.
+
+                Instructions:
+
+                Focus strictly on the Context, Previous Conversation and Report Context.
+
+                Ensure the response matches the required Output Expectation exactly.
+
+                Do not provide explanations or additional commentary unless asked.
+
+                Question:
+                {query}
+
+                Report Context:
+                {report_context}
+
+                Context:
+                {context}
+
+                Previous Conversation:
+                {prev_conversation}
+
+                Output Expectation:
+                {parser["output_expectation"]}
+
+                Format your response strictly as:
+                {parser["output_expectation"]}
+
+                """
 
                 # Generate prompt
-                prompt = f"""Provide the answer for the given question based on the context only.
-                    Question: {query}
-                    {report_context}
-                    Context: {context}
-                    Previous Conversation: {prev_conversation}
+                # prompt = f"""Provide the answer for the given question based on the context only.
+                #     Question: {query}
+                #     {report_context}
+                #     Context: {context}
+                #     Previous Conversation: {prev_conversation}
+                #     Format of the answer should be: {parser["output_expectation"]}
                     
-                    Answer: """
+                #     Answer: """
                 #Output Format: {parser['output_expectation']}
                 # Generate answer
-                answer = self.model_provider.generate(prompt)
+                answer = str(self.model_provider.generate(prompt))
                 print("answer: ",answer)
                 # Validate answer
                 if answer:

@@ -18,7 +18,7 @@ class RAG:
         if not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set.")
         genai.configure(api_key=self.gemini_api_key)
-        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.gemini_model = genai.GenerativeModel('gemini-1.5-pro-latest')
 
     def retrieve_documents(self, query: str, k: int = 3) -> list:
         """

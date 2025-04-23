@@ -2,50 +2,46 @@ import os
 import json
 from typing import List, Dict
 from langchain_mongodb import MongoDBAtlasVectorSearch
+from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from pymongo import MongoClient
 import google.generativeai as genai
-from memory.memory import Memory
 from dotenv import load_dotenv
+
 load_dotenv()
-
-
-
 
 # Constants
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "mongodb")  # Default to MongoDB
+FAISS_STORAGE_PATH = os.getenv("FAISS_STORAGE_PATH", "./faiss_store")
 
 class RAG:
     def __init__(self):
         # Initialize embedding model
         self.embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-        
-        
-       
 
-    def retrieve_documents(self, query: str,application_name, k: int = 3) -> List[Dict]:
+    def retrieve_documents(self, query: str, application_name: str, k: int = 3) -> List[Dict]:
         """
-        Retrieve the top-k most relevant documents for the given query using MongoDB Vector Search.
-
-        Args:
-            query (str): The query to search for.
-            k (int): The number of documents to retrieve.
-
-        Returns:
-            list: A list of dictionaries containing the retrieved documents and their metadata.
+        Retrieve documents from either MongoDB or FAISS based on configuration
         """
-        MONGODB_ATLAS_CLUSTER_URI=os.getenv("MONGODB_ATLAS_CLUSTER_URI")
-        DB_NAME=application_name
-        COLLECTION_NAME=f"{application_name}_docs"
-        ATLAS_VECTOR_SEARCH_INDEX_NAME=os.getenv("ATLAS_VECTOR_SEARCH_INDEX_NAME")
-        
-        # Initialize MongoDB client
+        print("DATABASE_TYPE: ", DATABASE_TYPE)
+        if DATABASE_TYPE == "mongodb":
+            return self._retrieve_from_mongodb(query, application_name, k)
+        elif DATABASE_TYPE == "local":
+            return self._retrieve_from_faiss(query, application_name, k)
+        else:
+            raise ValueError(f"Unsupported database type: {DATABASE_TYPE}")
+
+    def _retrieve_from_mongodb(self, query: str, application_name: str, k: int) -> List[Dict]:
+        """Original MongoDB implementation"""
+        MONGODB_ATLAS_CLUSTER_URI = os.getenv("MONGODB_ATLAS_CLUSTER_URI")
+        COLLECTION_NAME = f"{application_name}_docs"
+        ATLAS_VECTOR_SEARCH_INDEX_NAME = os.getenv("ATLAS_VECTOR_SEARCH_INDEX_NAME")
+
         client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
-        collection = client[DB_NAME][COLLECTION_NAME]
+        collection = client[application_name][COLLECTION_NAME]
         
-        
-        # Perform vector search
         vector_store = MongoDBAtlasVectorSearch(
             collection=collection,
             embedding=self.embedding_model,
@@ -53,28 +49,33 @@ class RAG:
         )
         
         results = vector_store.similarity_search(query, k=k)
-        # Format results
-        formatted_results = []
-        for doc in results:
-            formatted_results.append(doc.page_content)
-        return formatted_results
+        return [doc.page_content for doc in results]
 
-    def rag(self, query: str, sessionid: str,application_name:str) -> str:
-        """
-        Generate an answer for the given query using the RAG pipeline.
-
-        Args:
-            query (str): The query to answer.
-            sessionid (str): The session ID for memory retrieval.
-
-        Returns:
-            str: The generated answer.
-        """
-        # Step 1: Retrieve relevant documents
-        try:
-            context_docs = self.retrieve_documents(query, k=9,application_name=application_name)
-        except Exception as e:
-            return f"Error retrieving documents: {e}"
-
+    def _retrieve_from_faiss(self, query: str, application_name: str, k: int) -> List[Dict]:
+        """FAISS implementation"""
+        print("faiss results: ", FAISS_STORAGE_PATH, application_name)
+        store_path = os.path.join(FAISS_STORAGE_PATH, application_name, "docs")
         
-        return context_docs
+        if not os.path.exists(store_path):
+            raise FileNotFoundError(f"No FAISS index found at {store_path}")
+            
+        vector_store = FAISS.load_local(
+            store_path,
+            self.embedding_model,
+            allow_dangerous_deserialization=True
+        )
+        
+        results = vector_store.similarity_search(query, k=k)
+        print("results: ", results)
+        return [doc.page_content for doc in results]
+
+    def rag(self, query: str, sessionid: str, application_name: str) -> str:
+        """
+        Generate answer using the configured storage backend
+        """
+        try:
+            context_docs = self.retrieve_documents(query, application_name, k=9)
+            # Add your existing RAG pipeline logic here
+            return context_docs
+        except Exception as e:
+            return f"Error in RAG pipeline: {e}"

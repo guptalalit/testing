@@ -36,7 +36,7 @@ class Task:
             
             # Query Gemini
             response = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
+                model="gemini-1.5-pro-latest",
                 contents=prompt,
                 config=GenerateContentConfig(
                     response_mime_type="application/json",

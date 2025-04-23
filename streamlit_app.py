@@ -1,22 +1,24 @@
 import streamlit as st
 from planner import Planner
-
 from plannerAddData import DataUpload
 from memory.memory import Memory
-from utils.google_llm_services import GoogleLLM
-import json
 import os
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.documents import Document
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import tempfile
 from datetime import datetime
-import shutil  # For removing directories
-# Initialize core components
+import shutil
 
+# Constants
 METADATA_FILE = "./memory/memory_metadata.json"
-FEEDBACK_COLLECTION_NAME = "session_feedback"
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "mongodb")
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 load_dotenv()
 
+# Authentication (existing code)
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
@@ -24,36 +26,30 @@ def authenticate(auth_code):
     correct_code = os.getenv("AUTH_CODE", "1234")
     if auth_code == correct_code:
         st.session_state["authenticated"] = True
-        
     else:
-        st.error("🚨 Incorrect authentication code. Please try again.")
+        st.error("\ud83d\udea8 Incorrect authentication code")
 
 def login_page():
-    st.title("🔐 Login Authentication")
-    auth_code = st.text_input("Enter Authentication Code", type="password")
+    st.title("🔐 Login")
+    auth_code = st.text_input("Enter Code", type="password")
     st.button("Login", on_click=authenticate, args=(auth_code,))
 
-class AppMain():
+class AppMain:
     def __init__(self):
-        #self.app_selected = "Thyroid"
-        #self.session_id = "default"
         with open("session_id.txt", "r") as file:
             self.session_id_app = file.read().split(",")
         with open("app_selected.txt", "r") as file:
             self.selection_apps = file.read().split(",")
 
-    def get_feedback_collection(self):
-        client = MongoClient(os.getenv("MONGODB_ATLAS_CLUSTER_URI"))
-        return client["lungtumor_db"][FEEDBACK_COLLECTION_NAME]
-
-
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
     def data_upload_page(self):
-        st.header("📤 Data Upload")
+        st.header("📤 Literature Upload")
 
         # Allow the user to upload multiple .txt files
         uploaded_files = st.file_uploader("Upload .txt or .pdf files", type=["txt", "pdf"], accept_multiple_files=True)
-        new_app = st.text_input("Create new application")
+        new_app = st.text_input("Create new application (Thyroid tumor is already added)")
         
         # Add new app to selection apps if not already present
         if new_app not in self.selection_apps and new_app:
@@ -66,7 +62,7 @@ class AppMain():
                 file.write(str_app)
 
         # Select an application from the list
-        self.app_selected = st.selectbox("Select Application", self.selection_apps)
+        self.app_selected = st.selectbox("Select Application (Thyorid for Thyroid cancer)", self.selection_apps)
 
         # Button to initiate data upload
         if st.button("Upload Data"):
@@ -114,142 +110,142 @@ class AppMain():
                     shutil.rmtree(upload_folder)
                     st.info(f"Temporary folder {upload_folder} has been deleted.")
                 except Exception as e:
-                    st.error(f"🚨 Error deleting folder: {str(e)}")    
+                    st.error(f"🚨 Error deleting folder: {str(e)}")
+
     def process_query_page(self):
-        st.header("🔍 Process Query")
-        query = st.text_input("Enter your query")
-        pdf_file = st.file_uploader("Upload PDF context", type=["pdf"])
-        output_format = st.selectbox("Select output format", ["JSON", "Text", "Table"])
-        application_name=st.selectbox("Provide the application name", self.selection_apps)
-        # session_id = st.text_input("Session ID")
-        # Check if the application name exists in the MongoDB database
-        if application_name:
-            # Initialize MongoDB client and check if the database exists
-            try:
-                client = MongoClient(os.getenv("MONGODB_ATLAS_CLUSTER_URI"))
-                # List all database names
-                existing_databases = client.list_database_names()
+        st.header("💬 Chat/Actions")
+        application_name = st.selectbox("Application name (Thyorid for Thyroid cancer)", self.selection_apps)
+        pdf_file = st.file_uploader("Patient context like pathology or radiology report", type=["pdf"])
+        output_format = st.selectbox("Format you would like to see the output", ["JSON", "Text", "Table", "Python Code"])
 
-                # Check if the application_name exists in the list of databases
-                if application_name not in existing_databases:
-                    st.error(f"Invalid application name: '{application_name}'. Please provide a correct application name.")
-                    return  # Stop execution if the application name is invalid
-            except Exception as e:
-                st.error(f"Error connecting to MongoDB: {str(e)}")
-                return
-        
-        if st.button("Add new session"):
-            
+        if st.button("Start a new session (Each patient can have own session)"):
             curr_date_time = datetime.now()
-            date_time_ = (application_name + "_" + str(curr_date_time)).replace(" ", "_")
+            date_time_ = f"{application_name}_{str(curr_date_time)}".replace(" ", "_")
             self.session_id_app.append(date_time_)
-
             with open("session_id.txt", "w") as file:
-                str_app = ",".join(self.session_id_app)
-                str_app = str_app.replace(",,", ",").replace(", ", ",").replace(",/n", ",")
-                file.write(str_app)                    
+                file.write(",".join(self.session_id_app))
 
-        self.session_id = st.selectbox("Select session", self.session_id_app)
+        session_id = st.selectbox("Select a session", self.session_id_app)
+        query = st.chat_input("Enter your question")
 
-        if st.button("Process Query"):
-            if not query:
-                st.error("Please enter a query")
-            else:
+        memory = Memory(application_name)
+
+        def trigger_feedback(index, feedback_value, query, answer, sessionid):
+            memory.update_feedback(query, answer, sessionid, feedback_value)
+            st.session_state[f"feedback_done_{index}"] = True
+
+        # If user sent a new message
+        if query:
+            try:
                 pdf_path = ""
                 if pdf_file:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
                         tmp_pdf.write(pdf_file.getvalue())
                         pdf_path = tmp_pdf.name
 
-                try:
-                    planner_input = {
-                        "query": query,
-                        "context": pdf_path,
-                        "output_expectation": output_format,
-                        "sessionid": self.session_id
-                    }
-                    
-                    planner = Planner()
-                    result = planner.sequence(planner_input,application_name)
-                    
-                    memory = Memory(application_name)
-                    memory.add_conversation(query, result, sessionid=self.session_id)
-                    
-                    st.subheader("Result")
-                    st.write(str(result))
-                    # st.json(result) if output_format == "JSON" else st.write(str(result))
-                    
-                except Exception as e:
-                    st.error(f"Error processing query: {str(e)}")
+                planner_input = {
+                    "query": query,
+                    "context": pdf_path,
+                    "output_expectation": output_format,
+                    "sessionid": session_id
+                }
 
-        
+                planner = Planner()
+                result = planner.sequence(planner_input, application_name)
 
-    def get_feedback_collection(self, application_name):
-        """
-        Get the feedback collection from MongoDB. If it doesn't exist, create it.
-        """
-        try:
-            client = MongoClient(os.getenv("MONGODB_ATLAS_CLUSTER_URI"))
-            db = client[application_name]
-            
-            # Check if feedback collection exists, if not create it
-            if "feedback" not in db.list_collection_names():
-                # Create feedback collection if it doesn't exist
-                db.create_collection("feedback")
-                st.info("Created 'feedback' collection in the application.")
-            
-            # Return the feedback collection
-            collection = db.get_collection("feedback")
-            return collection
-        except Exception as e:
-            st.error(f"Error fetching feedback collection: {str(e)}")
-            return None
+                memory.add_conversation(query=query, answer=result, sessionid=session_id)
+
+                st.session_state.messages.append({
+                    "role": "user", 
+                    "content": query,
+                    "sessionid": session_id
+                })
+                st.session_state.messages.append({
+                    "role": "bot", 
+                    "content": result,
+                    "sessionid": session_id,
+                    "query": query,
+                    "answer": result
+                })
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+
+        # Always display all messages
+        for i, msg in enumerate(st.session_state.messages):
+            if msg["sessionid"] != session_id:
+                continue  # Skip messages not related to this session
+
+            if msg["role"] == "user":
+                st.chat_message("user").write(msg["content"])
+            else:
+                col1, col2, col3 = st.columns([6, 1, 1])
+                with col1:
+                    st.chat_message("assistant").write(msg["content"])
+                if not st.session_state.get(f"feedback_done_{i}"):
+                    with col2:
+                        st.button("👍", key=f"positive_{i}",
+                                on_click=trigger_feedback,
+                                args=(i, "positive", msg["query"], msg["answer"], msg["sessionid"]))
+                    with col3:
+                        st.button("👎", key=f"negative_{i}",
+                                on_click=trigger_feedback,
+                                args=(i, "negative", msg["query"], msg["answer"], msg["sessionid"]))
+                else:
+                    st.markdown("✅ Your feedback is recorded")
 
     def feedback_page(self):
-        st.header("📝 Feedback")
+        st.header("📝 Feedback on chat/actions")
 
-        # Provide both session and application name input
-        application_name = st.selectbox("Select application", self.selection_apps)
-        session_id = st.selectbox("Select session", self.session_id_app)
-        
-        # Provide feedback text input
-        feedback_text = st.text_area("Your Feedback")
+        application_name = st.selectbox("Select Application (Thyroid for Thyroid cancer)", self.selection_apps)
+        session_id = st.selectbox("Select Session (Each patient can have own session)", self.session_id_app)
+        feedback_text = st.text_area("Enter your feedback")
 
         if st.button("Submit Feedback"):
-            # Check if all fields are filled
             if not session_id or not feedback_text or not application_name:
-                st.warning("Please fill all the fields (Application, Session ID, and Feedback)")
+                st.warning("Please fill all fields")
                 return
 
             try:
-                # Step 1: Check if the application (database) exists
-                client = MongoClient(os.getenv("MONGODB_ATLAS_CLUSTER_URI"))
-                existing_databases = client.list_database_names()
+                if DATABASE_TYPE == "mongodb":
+                    collection = self.get_feedback_storage(application_name)
+                    if collection is None:
+                        return
 
-                # Check if the selected application (database) exists
-                if application_name not in existing_databases:
-                    st.error(f"No application found with the name: '{application_name}'. Please provide a correct application name.")
-                    return  # Stop further execution if the application is not found
+                    result = collection.update_one(
+                        {"sessionid": session_id},
+                        {"$set": {
+                            "feedback": feedback_text,
+                            "timestamp": datetime.now().isoformat()
+                        }},
+                        upsert=True
+                    )
 
-                # Step 2: Get or create the 'feedback' collection
-                collection = self.get_feedback_collection(application_name)
-                if collection is None:
-                    st.error(f"Feedback collection could not be fetched or created for application '{application_name}'.")
-                    return  # Stop further execution if the collection couldn't be fetched/created
+                    if result.modified_count > 0 or result.upserted_id:
+                        st.success("Feedback submitted to MongoDB!")
 
-                
-                # Step 3: Insert or update the feedback document in the MongoDB collection
-                result = collection.update_one(
-                    {"sessionid": session_id},
-                    {"$set": {"feedback": feedback_text}},
-                    upsert=True
-                )
-
-                # Check if the operation was successful
-                if result.modified_count > 0 or result.upserted_id:
-                    st.success("Feedback submitted successfully!")
                 else:
-                    st.error("Failed to submit feedback")
+                    feedback_store = self.get_feedback_storage(application_name)
+                    if feedback_store is None:
+                        return
+
+                    feedback_doc = Document(
+                        page_content=feedback_text,
+                        metadata={
+                            "sessionid": session_id,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    )
+
+                    feedback_store.add_documents([feedback_doc])
+
+                    feedback_path = os.path.join(
+                        os.getenv("FAISS_STORAGE_PATH", "./faiss_store"),
+                        application_name,
+                        "feedback"
+                    )
+                    feedback_store.save_local(feedback_path)
+
+                    st.success("Feedback stored in FAISS!")
 
             except Exception as e:
                 st.error(f"Error processing feedback: {str(e)}")
@@ -258,36 +254,19 @@ def main():
     if not st.session_state["authenticated"]:
         login_page()
     else:
-        # st.title("AI Assistant Platform")
-        # st.sidebar.title("Navigation")
-        # page = st.sidebar.radio("Go to", ["Data Upload", "Process Query", "Feedback"], index=1)
-        # obj = AppMain()
-        # if page == "Data Upload":
-        #     obj.data_upload_page()
-        # elif page == "Process Query":
-        #     obj.process_query_page()
-        # elif page == "Feedback":
-        #     obj.feedback_page()
+        st.title("Thyroid Cancer Agent")
+        st.sidebar.title("Navigation Options")
+        page = st.sidebar.radio("", 
+                               ["Literature Upload", "Chat/Actions", "Feedback"],
+                               index=1)
 
-        st.title("AI Assistant Platform")
-        
-        # Sidebar navigation
-        st.sidebar.title("Navigation")
-        page = st.sidebar.radio(
-            "Go to",
-            ["Data Upload", "Process Query", "Feedback"],
-            index=1  # Default to Process Query
-        )
-
-        obj = AppMain()
-
-        # Display the selected page
-        if page == "Data Upload":
-            obj.data_upload_page()
-        elif page == "Process Query":
-            obj.process_query_page()
+        app = AppMain()
+        if page == "Literature Upload":
+            app.data_upload_page()
+        elif page == "Chat/Actions":
+            app.process_query_page()
         elif page == "Feedback":
-            obj.feedback_page()
+            app.feedback_page()
 
 if __name__ == '__main__':
     main()

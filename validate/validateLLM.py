@@ -14,7 +14,8 @@ def validate_answer(
     answer: str,
     context: List[str],
     output: str,
-    threshold: float = 0.7
+    threshold1: float = 0.4,
+    threshold2: float = 0.8
 ) -> Dict[str, Any]:
     """
     Validate a single question-answer pair using RAGAS metrics.
@@ -47,12 +48,14 @@ def validate_answer(
 
 
     # Prepare dataset for RAGAS
+    # print("context: ", context, "\noutput: ", output)
     data = {
         "question": [question],
         "answer": [answer],
         "contexts": [context],
-        "output expectations": [output]
     }
+    # print("data: ", data)
+
     dataset = Dataset.from_dict(data)
 
     # Define evaluation metrics
@@ -72,14 +75,14 @@ def validate_answer(
 
     # Determine if the answer is correct
     is_correct = (
-        faithfulness_score >= threshold and answer_relevancy_score >= threshold
+        faithfulness_score >= threshold1 and answer_relevancy_score >= threshold2
     )
 
     # Generate reason for validation
     reasons = []
-    if faithfulness_score < threshold:
+    if faithfulness_score < threshold1:
         reasons.append(f"The answer is not faithful to the context (score: {faithfulness_score:.2f}).")
-    if answer_relevancy_score < threshold:
+    if answer_relevancy_score < threshold2:
         reasons.append(f"The answer is not relevant to the question (score: {answer_relevancy_score:.2f}).")
     reason = " ".join(reasons) if reasons else "The answer is correct and relevant."
 

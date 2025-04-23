@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <h2>Sidebar</h2>
+            <ul>
+                <li>Upload Data</li>
+                <li>Sessions</li>
+                <li>Feedback</li>
+            </ul>
+        </div>
+        <div class="main">
+            <div class="header">Chat with Planner</div>
+            <div class="chat-box" id="chat-box"></div>
+            <div class="chat-input-area">
+                <input type="text" id="user-input" placeholder="Type your message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = "";
+
+            const response = await fetch("/process_query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ query: message, sessionid: "abcd1234" })
+            });
+
+            const data = await response.json();
+            appendMessage(data.planner_result || "No response", 'bot');
+        }
+
+        function appendMessage(text, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElem = document.createElement('div');
+            messageElem.className = 'message ' + sender;
+            messageElem.innerText = text;
+            chatBox.appendChild(messageElem);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>

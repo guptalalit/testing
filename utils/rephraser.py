@@ -43,7 +43,7 @@ def rephrase_query(original_query: str, reason: str,answer:str) -> dict:
 
     # Query Gemini for rephrased query
     response = client.models.generate_content(
-        model="gemini-2.0-flash-exp",
+        model="gemini-1.5-pro-latest",
         contents=prompt,
         config=GenerateContentConfig(
             response_mime_type="application/json",
