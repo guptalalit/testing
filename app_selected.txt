@@ -1,1 +1,1 @@
-Thyroid
+Thyroid,Lung_Tumer

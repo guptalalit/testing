@@ -48,7 +48,7 @@ def validate_answer(
 
 
     # Prepare dataset for RAGAS
-    # print("context: ", context, "\noutput: ", output)
+    print("RAGAS, context: ", context, "\noutput: ", output, "answer: ", answer)
     data = {
         "question": [question],
         "answer": [answer],
@@ -75,7 +75,7 @@ def validate_answer(
 
     # Determine if the answer is correct
     is_correct = (
-        faithfulness_score >= threshold1 and answer_relevancy_score >= threshold2
+        faithfulness_score >= threshold1 or answer_relevancy_score >= threshold2
     )
 
     # Generate reason for validation

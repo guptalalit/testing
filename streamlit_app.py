@@ -91,7 +91,7 @@ class AppMain:
                         # Pass the folder path containing the uploaded files
                         #planner = Planner()  # Assuming your Planner class handles folder processing
                         data=DataUpload()
-                        print("new application:", self.app_selected)
+                        print("new application:", self.app_selected, full_upload_folder_path)
                         data.sequence(dataPath=full_upload_folder_path , new_app=self.app_selected)  # Provide the folder path instead of individual files
                     st.success("✅ Data uploaded and processed successfully!")
                     st.balloons()
@@ -116,7 +116,7 @@ class AppMain:
         st.header("💬 Chat/Actions")
         application_name = st.selectbox("Application name (Thyorid for Thyroid cancer)", self.selection_apps)
         pdf_file = st.file_uploader("Patient context like pathology or radiology report", type=["pdf"])
-        output_format = st.selectbox("Format you would like to see the output", ["JSON", "Text", "Table", "Python Code"])
+        output_format = st.selectbox("Format you would like to see the output", ["Text", "JSON", "Table", "Python Code"])
 
         if st.button("Start a new session (Each patient can have own session)"):
             curr_date_time = datetime.now()

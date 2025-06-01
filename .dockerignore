@@ -1,0 +1,7 @@
+# Ignore environment and build artifacts
+.env
+__pycache__/
+*.pdf.txt
+.vscode/
+.venv/
+*.log

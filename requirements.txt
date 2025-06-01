@@ -2,7 +2,7 @@ langchain-community==0.3.18
 langchain-core==0.3.43
 langchain-mongodb==0.5.0
 numpy==1.26.4
-openai==1.65.5 # Compatible with genai
+openai==1.65.5
 pymongo==4.11.2
 sentence-transformers==3.4.1
 streamlit==1.43.2
@@ -14,3 +14,4 @@ ragas==0.2.13
 langchain-openai==0.3.8
 easyocr==1.7.2
 pdf2image==1.17.0
+faiss-cpu

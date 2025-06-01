@@ -10,7 +10,7 @@ import google.generativeai as genai
 from openai import OpenAI
 import json
 import utils.google_llm_services as googleserv
-
+from pathlib import Path
 
 class ModelProvider:
     def __init__(self):
@@ -32,7 +32,7 @@ class ModelProvider:
         if self.provider == "gemini":
             
             genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            self.model =genai.GenerativeModel('gemini-1.5-pro-latest')
+            self.model =genai.GenerativeModel('gemini-1.5-flash')
         else:
             
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -74,7 +74,16 @@ class Planner:
                 memory = Memory(application_name)
                 prev_conversation = memory.search_conversations(query=query, k=3)
                 if parser["context"] != "":
-                    report_context_1 = googleserv.GoogleLLM().getResults(parser["context"])
+                    filename = os.path.basename(parser["context"])
+                    file_path = Path(filename + ".txt")
+
+                    if file_path.exists():
+                        with open(file_path, "r") as file:
+                            report_context_1 = file.read()
+                    else:
+                        report_context_1 = googleserv.GoogleLLM().getResults(parser["context"])
+                        with open(file_path, "w") as file:
+                            file.write(report_context_1)
                     report_context = "Report Pdf:" + report_context_1
                 else:
                     report_context = ""
@@ -131,7 +140,7 @@ class Planner:
                 print("answer: ",answer)
                 # Validate answer
                 if answer:
-                    validation_result = validate_answer(query, answer, context, parser['output_expectation'])
+                    validation_result = validate_answer(query, answer, [report_context] + context, parser['output_expectation'])
                     print(f"Validation Result: {validation_result}")
 
                     if validation_result.get("is_correct"):
